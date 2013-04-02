@@ -1,0 +1,88 @@
+FTutils
+=======
+
+Utilities for using Google's FusionTable API.
+
+FTutils has one user level utility 'ft-sync'.
+This utility relies for core functionality on two python sub-packages 
+included in this package: FTClient and FTSync, and on the co-located 
+settings.py file for database access particulars.
+
+ft-sync is used to maintain a unidirectional sync either from a Postgres
+database table (DB) to a Fustion Table (FT), or from a Fusion Table to a
+Postgres database table.  Each table must have a sequential ID field,
+a numeric field which value increases with each added row. This is typically 
+an auto-increment key field.  The two tables must have the same schema 
+except as noted below.
+
+In FT the sequentail ID field must be named 'seqid'.  The FT also has 
+unique numeric primary key 'ROWID' which identifies each record but is 
+not necessarily increasing in value. 
+
+In the DB the sequential ID field can have any name but perferably
+is named 'st_id'.  The DB record also has a field that stores the FT key
+(ROWID), which is preferably named 'ft_id'.  The names of these two DB fields
+are known to this script by the command line options --seq_field and 
+--ft_id_field respectively, and default to 'seqid' and 'ft_id' respectively.
+Note that for legacy reasons the --seq_field default is 'seqid' while 
+the preferred name for this field is 'st_id'.
+
+There are two possible syncing processes, FT -> DB and DB -> FT, which are 
+identified by the two commands FT2DB and DB2FT.  Between any pair of 
+tables (FT, DB) syncing may only ever be performed in one direction.
+Because the two syncing processes are not exactly symmetric, it is best
+to consider them separately.
+
+FT2DB
+-----
+1. Find max_seq, the largest value in database column 'DB.(--seq_field)'
+2. Read all FT records including ROWID where 'FT.seqid > max_seq'
+3. Insert into DB with column mapping
+        FT.rowid -> DB.(--ft_id_field)
+        FT.seqid -> DB.(--seq_field)
+        otherwise:
+        FT.(col) -> DB.(col)
+
+DB2FT
+-----
+1. Find all DB records where 'DB.<--ft_id_field>' is null.
+2. Insert rows into FT with column mappings:
+        DB.(--seq_field) -> FT.seqid
+        otherwise:
+        DB.(col) -> FT.(col)
+3. Update DB.(ft_id_field) with the ROWID from the new FT record
+
+
+Script --help
+-------------
+Usage: ft-sync [options] COMMAND FT_ID DB_TABLE
+
+  COMMAND
+    DB2FT    Sync records from the Postgres Table into the Fusion Table
+    FT2DB    Sync records from the Fusion Table into the Postgres table
+
+  FT_ID
+    ID of the fusion table - to find the id, open the table and
+    select File/About
+  DB_TABLE
+    Postgres Table.  Column names must match columns in the fusion table
+
+
+Syncs a Postgres table with a Fusion Table, using a sequential ID field as the
+key.  The tables must have the same schema, and must contain a single field
+that uniquely identifies each record and is also updated sequentially so every
+new record gets a larger value that all previous records
+
+Options:
+  -h, --help            show this help message and exit
+  -q, --quiet           Only output error messages
+  -v, --verbose         Output debugging information
+  --ft_id_field=FT_ID_FIELD
+                        Name of the column in the Postgres table that stores
+                        the Fusion Table ROWID
+  --seq_field=SEQ_FIELD
+                        Name of the column in the Postgres table that stores
+                        the unique key - always called 'seqid' in the Fusion
+                        Table
+  --max_recs=MAX_RECS   Maximum number of records to transfer
+

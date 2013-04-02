@@ -32,7 +32,7 @@ class SQL:
     Returns:
       the sql statement
     """
-    return 'DESCRIBE %d' % (table_id)
+    return 'DESCRIBE %s' % (table_id)
 
   def createTable(self, table):
     """ Build a CREATE TABLE sql statement.
@@ -76,8 +76,8 @@ class SQL:
                           .replace("\'rowid\'", "rowid") \
                           .replace("\'ROWID\'", "ROWID")
 
-    if condition: select = 'SELECT %s FROM %d WHERE %s' % (stringCols, table_id, condition)
-    else: select = 'SELECT %s FROM %d' % (stringCols, table_id)
+    if condition: select = 'SELECT %s FROM %s WHERE %s' % (stringCols, table_id, condition)
+    else: select = 'SELECT %s FROM %s' % (stringCols, table_id)
     return select
 
 
@@ -99,7 +99,7 @@ class SQL:
       the sql statement
     """
 
-    return "UPDATE %d SET %s WHERE ROWID = '%d'" % (table_id, 
+    return "UPDATE %s SET %s WHERE ROWID = '%d'" % (table_id, 
         ", ".join(["%s=%s" % (k, self._get_str_value(v)) for k,v in values.iteritems()]), 
         row_id)
 
@@ -113,7 +113,7 @@ class SQL:
     Returns:
       the sql statement
     """
-    return "DELETE FROM %d WHERE ROWID = '%d'" % (table_id, row_id)
+    return "DELETE FROM %s WHERE ROWID = '%d'" % (table_id, row_id)
 
 
   def insert(self, table_id, row):
@@ -140,10 +140,11 @@ class SQL:
             keys.append(k)
             values.append(v)
                     
-    return 'INSERT INTO %d (%s) VALUES (%s)' % \
-      (int(table_id), 
+    return 'INSERT INTO %s (%s) VALUES (%s)' % \
+      (table_id, 
         ','.join(["'%s'" % k for k in keys]), 
         ','.join([self._get_str_value(v) for v in values]))
+#      (int(table_id), 
 
   def dropTable(self, table_id):
     """ Build DROP TABLE sql statement.
@@ -154,7 +155,7 @@ class SQL:
     Returns:
       the sql statement
     """
-    return "DROP TABLE %d" % (table_id)
+    return "DROP TABLE %s" % (table_id)
 
 
   def _get_str_value (self, value):

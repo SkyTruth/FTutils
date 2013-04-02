@@ -7,7 +7,8 @@ setup(name='FTTools',
       author='Paul Woods',
       author_email='pau@skytruth.org',
       url='http://www.skytruth.org/',
-      packages=find_packages()
+      packages=find_packages(),
+      scripts=['scripts/ft-sync']      
       )
       
 #setup(name='FTTools',
