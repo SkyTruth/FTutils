@@ -57,10 +57,10 @@ if __name__ == "__main__":
             action="store",  default=1000, type='int', dest='max_recs',
             help="Maximum number of records to transfer",
             metavar="MAX_RECS")
-#    parser.add_option("--db_name",
-#            action="store",  default='Test', type='string', dest='db_name',
-#            help="Name of Postgres database to connect to",
-#            metavar="DB_NAME")
+    parser.add_option("--batch_size",
+            action="store",  default=100, type='string', dest='batch_size',
+            help="Number of records to sync in each batch",
+            metavar="BATCH_SIZE")
 #    parser.add_option("--settings",
 #            action="store", type='string', dest='settings',
 #            help="Name of settings file",
@@ -130,13 +130,15 @@ if __name__ == "__main__":
     records_affected = 0
     success = False
     max_records = options.max_recs
+    batch_size = options.batch_size
+
     if command == 'DB2FT':
         logging.debug ("Syncing %s to %s for max %s records"
                        % (db_table, ft_table_id, max_records))
         try:
             while records_affected < max_records:
                 new_records_affected = db_ft_sync.sync_postgres_to_ft (
-                        db_table, ft_table_id)
+                        db_table, ft_table_id, batch_size)
                 if not new_records_affected:
                     break
                 records_affected += new_records_affected
@@ -153,7 +155,7 @@ if __name__ == "__main__":
         try:
             while records_affected < max_records:
                 new_records_affected = db_ft_sync.sync_ft_to_postgres (
-                        db_table, ft_table_id)
+                        db_table, ft_table_id, batch_size)
                 if not new_records_affected:
                     break
                 records_affected += new_records_affected

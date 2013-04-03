@@ -7,6 +7,9 @@ from FTClient.sql.sqlbuilder import SQL
 import psycopg2
 #from MySQLdb.cursors import DictCursor
 from psycopg2.extras import RealDictCursor as DictCursor
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
+
 import time
 import logging
 
