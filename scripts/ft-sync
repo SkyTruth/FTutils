@@ -164,7 +164,7 @@ def main():
         logging.debug ("Syncing %s to %s for max %s records"
                        % (db_table, ft_table_nm, max_records))
         initial_count = get_ft_count(ft_client, ft_table_id)
-        logging.info ("Fusion table initial size %s records." % initial_count)
+        logging.info ("Fusion table %s initial size %s records." % (ft_table_nm, initial_count))
         try:
             while records_affected < max_records:
                 new_records_affected = db_ft_sync.sync_postgres_to_ft (
@@ -172,8 +172,7 @@ def main():
                 if not new_records_affected:
                     break
                 records_affected += new_records_affected
-                logging.info ("Total synced records: %s in ft_table_nm"
-                              % records_affected)
+                logging.info ("Total synced records: %s" % records_affected)
                 time.sleep(0.5) # to avoid exceeding 5qps quota errors
 
             success=True
@@ -185,12 +184,12 @@ def main():
         # Check record count consistency
         final_count = get_ft_count(ft_client, ft_table_id)
         ft_added = final_count - initial_count
-        logging.info ("Fusion table final size %s records; added %s records." %
-                       (final_count, ft_added))
+        logging.info ("Fusion table %s final size %s records; added %s records." %
+                       (ft_table_nm, final_count, ft_added))
         if records_affected != ft_added:
             logging.error (
-                "Synced %s records; fusion table added %s; missing %s."
-                % (records_affected, ft_added, records_affected-ft_added))
+                "Synced %s records; fusion table %s added %s; missing %s."
+                % (records_affected, ft_table_nm, ft_added, records_affected-ft_added))
 
     elif command == 'FT2DB':
         logging.debug ("Syncing %s to %s for max %s records"
