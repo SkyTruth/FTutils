@@ -113,7 +113,10 @@ class FTClient():
                 
         full_query = ';'.join(queries)
         logging.debug ("  Inserting %s rows" % (len(queries)))
-        rowids = self.csv2Dict(self.query(full_query))
+	result = self.query(full_query)
+	logging.debug ('INSERT RESULT: %s'%result)
+        rowids = self.csv2Dict(result)
+
         if len(rowids) <> len(queries):
             logging.warning ("    inserted %s rows but only got back %s rowids" % (len(queries), len(rowids)))
     
@@ -151,7 +154,7 @@ class FTClient():
     
   def insertOrReplaceRows (self, table_id, rows, unique_id_field, insert_only=False):
     rows = self.getRowIds (table_id, rows, unique_id_field)
-    logging.debug("Found %s records that already exist in FT" % len(rows))
+#    logging.debug("Found %s records that already exist in FT" % len(rows))
     
     update_rows = []
     insert_rows = []
@@ -163,8 +166,11 @@ class FTClient():
             insert_rows.append(row)
     if insert_only:
         rows = update_rows
+	if len(update_rows):
+	        logging.warning ('Skipping: %s rows that already exist'%len(update_rows))
     else:
-        rows = self.updaterows (table_id, update_rows)
+       rows = self.updaterows (table_id, update_rows)
+
     rows.extend(self.insertRows (table_id, insert_rows))
     
     return rows
@@ -188,8 +194,10 @@ class FTClient():
             unique_ids.append (str(row[unique_id_field]))
     
     ft_query= "SELECT ROWID, '%s' FROM %s WHERE %s IN ( %s )" % (unique_id_field, table_id, unique_id_field, ", ".join(unique_ids))
-            
-    rowids = self.csv2Dict(self.query(ft_query))
+    result = self.query(ft_query)
+    logging.debug ('GetRowIDs: %s'%result)
+           
+    rowids = self.csv2Dict(result)
     
     rowid_map = {}
     # build a lookup table of unique_id to rowid        
@@ -218,7 +226,7 @@ class ClientLoginFTClient(FTClient):
 
   def _get(self, query):
     
-    logging.debug("GET %s"%query)
+#    logging.debug("GET %s"%query)
     headers = {
       'Authorization': 'GoogleLogin auth=' + self.auth_token,
     }
@@ -229,7 +237,7 @@ class ClientLoginFTClient(FTClient):
     return serv_resp.read()
 
   def _post(self, query):
-    logging.debug("POST %s"%query)
+#    logging.debug("POST %s"%query)
     headers = {
       'Authorization': 'GoogleLogin auth=' + self.auth_token,
       'Content-Type': 'application/x-www-form-urlencoded',

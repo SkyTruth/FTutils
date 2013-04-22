@@ -30,12 +30,12 @@ class PostgresFTSync:
         self.db = postgres_db
         self.ft_id_field = ft_id_field
         self.seq_field = seq_field
-
+	
 
     def sync_postgres_to_ft (self,
                              postgres_table_name,
                              ft_table_id,
-                             batch_size=100):
+                             batch_size=100, id_log_file=None):
         params = {
             'postgres_table_name': postgres_table_name,
             'ft_table_id': ft_table_id,
@@ -81,6 +81,7 @@ class PostgresFTSync:
                                                   insert_only=True)
         
         # update postgres with new ft rowids
+        time.sleep(1.0)  # allow FT request to complete (desparate measure)
         logging.debug ("Updating FT IDs in postgres ..." )
         for row in rows:
             params['ft_id_value'] = row['rowid']
@@ -89,6 +90,8 @@ class PostgresFTSync:
                    "set %(ft_id_field)s = %(ft_id_value)s "
                    "where %(seq_field)s = '%(seq_value)s'" % params)
             cur.execute (sql)
+	    if id_log_file:
+		id_log_file.write ("%s, %s\n" % (params['ft_id_value'], params['seq_value']))
         
         logging.info ("Synced %s records from postgres to FT" % len(rows) )
 

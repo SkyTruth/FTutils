@@ -1,0 +1,103 @@
+#!python
+#Fusion Table Insert/Update Utility
+
+#from FTSync.MysqlFTSync import MysqlFTSync
+from FTSync.PostgresFTSync import PostgresFTSync
+from FTClient import FTClient
+from FTClient.authorization.clientlogin import ClientLogin
+import psycopg2
+import logging
+from optparse import OptionParser
+import contextlib
+import sys
+import os.path
+
+import settings
+
+def process_query(query):
+    query_parts = [s.strip() for s in query.split()]
+    for i_, part in enumerate(query_parts):
+        if part[0] == '@' and part[1:] in settings.table_ids:
+            query_parts[i_] = settings.table_ids[part[1:]]
+    return ' '.join(query_parts)
+
+
+def parse_args():
+    desc = ("Querys a Fusion Table with the given sql statement."
+            )
+
+    usage = """%prog [options] QUERY
+    QUERY a quoted string containing the query.  The query can contain 
+          references of the form @TABLE_NAME for tables named in the
+          table_id map in settings.py.  These references will be replaced
+          by the encrypted table id.
+"""
+    parser = OptionParser(description=desc, usage=usage)
+
+    parser.set_defaults(loglevel=logging.INFO)
+    parser.add_option("-q", "--quiet",
+            action="store_const", dest="loglevel", const=logging.ERROR,
+            help="Only output error messages")
+    parser.add_option("-v", "--verbose",
+            action="store_const", dest="loglevel", const=logging.DEBUG,
+            help="Output debugging information")
+#    parser.add_option("--max_recs",
+#            action="store",  default=1000, type='int', dest='max_recs',
+#            help="Maximum number of records to transfer",
+#            metavar="MAX_RECS")
+    return parser.parse_args()
+
+def main():
+    (options, args) = parse_args()
+
+    if len(args) < 1:
+        parser.error("Not enough arguments.")
+    elif len(args) > 1:
+        parser.error("Too many arguments.")
+
+    query = args[0]
+
+    logging.basicConfig(format='%(levelname)s: %(message)s',
+                        level=options.loglevel)
+
+    ft_username = settings.FT_USERNAME
+    ft_password = settings.FT_PASSWORD
+
+    logging.info ("Connecting to Fusion Tables with user %s", ft_username)
+
+    ft_client = FTClient.ClientLoginFTClient(
+            ClientLogin().authorize(ft_username, ft_password))
+
+    records_affected = 0
+    success = False
+    #max_records = options.max_recs
+
+    logging.info ('Executing query "%s"' % query)
+
+    sql = process_query(query)
+
+    logging.debug ('Executing sql "%s"' % sql)
+    try:
+        csv = ft_client.query(sql)
+        lines = [s.strip() for s in csv.split('\n')]
+        # records seem to come back with a blank training line.
+        if not lines[-1]:
+            lines = lines[:-1]
+        records_affected  = len(lines) -1  # deduct header
+	csv = '\n'.join(lines)
+        print csv
+        print
+        success=True
+    except FTClient.FTClientError as e:
+        logging.error (e.message)
+    except psycopg2.Error as e:
+        logging.error (e)
+
+    logging.info ("%s records affected" % records_affected)
+    if success:
+        logging.info ("Done." )
+    else:
+        logging.info ("Failed." )
+
+if __name__ == "__main__":
+    main()

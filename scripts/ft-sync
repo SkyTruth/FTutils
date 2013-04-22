@@ -11,10 +11,22 @@ from optparse import OptionParser
 import contextlib
 import sys
 import os.path
+import time
 
 import settings
 
-if __name__ == "__main__":
+def get_ft_count(ft_client, table_id):
+    sql = 'select count(seqid) from %s;' % table_id
+    csv = ft_client.query(sql)
+    try:
+    	count = int( csv.split('\n')[1])
+    except ValueError:
+    	count = csv.split('\n')[1]
+    except IndexError:
+        count = csv
+    return count
+
+def main():
     desc = ("Syncs a Postgres table with a Fusion Table, using a sequential "
             "ID field as the key.  The tables must have the same schema, "
             "and must contain a single field that uniquely identifies each "
@@ -29,7 +41,9 @@ if __name__ == "__main__":
 
   FT_ID
     ID of the fusion table - to find the id, open the table and
-    select File/About
+    select File/About.
+    This can also be a reference in the form @TABLE_NAME for
+    tables in the table_id map in settings.py.
   DB_TABLE
     Postgres Table.  Column names must
     match columns in the fusion table
@@ -61,10 +75,10 @@ if __name__ == "__main__":
             action="store",  default=100, type='string', dest='batch_size',
             help="Number of records to sync in each batch",
             metavar="BATCH_SIZE")
-#    parser.add_option("--settings",
-#            action="store", type='string', dest='settings',
-#            help="Name of settings file",
-#            metavar="SETTINGS")
+    parser.add_option("--id_logfile",
+            action="store", type='string', dest='id_logfile',
+            help="File to write ids of synce redords to for debug",
+            metavar="ID_LOGFILE")
 
     (options, args) = parser.parse_args()
 
@@ -90,12 +104,26 @@ if __name__ == "__main__":
 #    except ValueError:
 #        parser.error("FT_TABLE_ID must be an integer")
 
-    ft_table_id = args[1]
+    ft_table_nm = args[1]
+    if ft_table_nm[0] == '@':
+        if ft_table_nm[1:] in settings.table_ids:
+            ft_table_id = settings.table_ids[ft_table_nm[1:]]
+        else:
+            logging.error ("Fusion table name '%s' not in settings.table_ids."
+                           % ft_table_nm)
+            return
+    else:
+        ft_table_id = ft_table_nm
+
     db_table = args[2]
 
     logging.basicConfig(format='%(levelname)s: %(message)s',
                         level=options.loglevel)
 
+    id_logfile = None	
+    if options.id_logfile:
+	id_logfile = open (options.id_logfile, 'w')
+	
     ft_username = settings.FT_USERNAME
     ft_password = settings.FT_PASSWORD
 #    ft_tableid = 1358365
@@ -134,21 +162,36 @@ if __name__ == "__main__":
 
     if command == 'DB2FT':
         logging.debug ("Syncing %s to %s for max %s records"
-                       % (db_table, ft_table_id, max_records))
+                       % (db_table, ft_table_nm, max_records))
+        initial_count = get_ft_count(ft_client, ft_table_id)
+        logging.info ("Fusion table initial size %s records." % initial_count)
         try:
             while records_affected < max_records:
                 new_records_affected = db_ft_sync.sync_postgres_to_ft (
-                        db_table, ft_table_id, batch_size)
+                        db_table, ft_table_id, batch_size, id_logfile)
                 if not new_records_affected:
                     break
                 records_affected += new_records_affected
+                logging.info ("Total synced records: %s in ft_table_nm"
+                              % records_affected)
+                time.sleep(0.5) # to avoid exceeding 5qps quota errors
 
             success=True
         except FTClient.FTClientError as e:
             logging.error (e.message)
-
         except psycopg2.Error as e:
             logging.error (e)
+
+        # Check record count consistency
+        final_count = get_ft_count(ft_client, ft_table_id)
+        ft_added = final_count - initial_count
+        logging.info ("Fusion table final size %s records; added %s records." %
+                       (final_count, ft_added))
+        if records_affected != ft_added:
+            logging.error (
+                "Synced %s records; fusion table added %s; missing %s."
+                % (records_affected, ft_added, records_affected-ft_added))
+
     elif command == 'FT2DB':
         logging.debug ("Syncing %s to %s for max %s records"
                        % (ft_table_id, db_table, max_records))
@@ -171,8 +214,16 @@ if __name__ == "__main__":
         parser.error("unknown command: %s" % command)
 
 
+    if id_logfile:
+	id_logfile.close()
+
     logging.info ("%s records affected" % records_affected)
     if success:
         logging.info ("Done." )
     else:
         logging.info ("Failed." )
+
+if __name__ == "__main__":
+    main()
+
+
