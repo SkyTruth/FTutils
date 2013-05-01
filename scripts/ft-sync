@@ -60,12 +60,13 @@ def main():
     parser.add_option("--ft_id_field",
             action="store",  default='ft_id', type='string', dest='ft_id_field',
             help="Name of the column in the Postgres table that stores the "
-                  "Fusion Table ROWID",
+                  "Fusion Table ROWID.  Default is 'ft_id'",
             metavar="FT_ID_FIELD")
     parser.add_option("--seq_field",
             action="store",  default='seqid', type='string', dest='seq_field',
             help="Name of the column in the Postgres table that stores the "
-                 "unique key - always called 'seqid' in the Fusion Table",
+                 "unique key - always called 'seqid' in the Fusion Table.  "
+                 "Default is 'seqid'.",
             metavar="SEQ_FIELD")
     parser.add_option("--max_recs",
             action="store",  default=1000, type='int', dest='max_recs',

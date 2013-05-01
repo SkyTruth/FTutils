@@ -32,5 +32,6 @@ table_ids = {
     "NrcScrapedMaterial"  : "1uKast4p4H_6i_CIEgEGXAFYK7Cirp-0-zjIvmT0",
     "NrcParsedReport"     : "1Ol939A6yXVFOYQHPXMe1L7ziJIuwbJ8667Na-p8",
     "WV_DrillingPermit"   : "1AQLhnO41aYUBYarFdCH_KpyLNn07dbkUl6M0l9A",
+    "RssEmailSubscription": "1FYTkbNp8tQcU46WgziEbABqrWr6Km0TkVTFlOGo",
 }
 
