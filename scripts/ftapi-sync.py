@@ -4,14 +4,6 @@
 #from FTSync.MysqlFTSync import MysqlFTSync
 from FTSync.PostgresFTSync import PostgresFTSync
 
-# modify path for FTAPI_v1
-import sys, os
-import FTSync
-v1_path = os.path.join(os.path.dirname(os.path.dirname(FTSync.__file__)),
-                                       'FTAPI_v1')
-sys.path.append(v1_path)
-print "Add to sys.path:", v1_path
-
 from FTClient import FTClient
 #from FTClient.authorization.clientlogin import ClientLogin
 import psycopg2
@@ -257,73 +249,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-#    if command == 'DB2FT':
-#        # reqd: db_table, ft_table_nm, ft_table_id, db_ft_sync
-#        #       max_records, batch_size, id_log_file,
-#        logging.debug ("Syncing %s to %s for max %s records"
-#                       % (db_table, ft_table_nm, max_records))
-#        initial_count = get_ft_count(ft_client, ft_table_id)
-#        logging.info ("Fusion table %s initial size %s records."
-#                      % (ft_table_nm, initial_count))
-#        try:
-#            while records_affected < max_records:
-#                new_records_affected = db_ft_sync.sync_postgres_to_ft (
-#                        db_table, ft_table_id, batch_size, id_logfile)
-#                if not new_records_affected:
-#                    break
-#                records_affected += new_records_affected
-#                logging.info ("Total synced records: %s" % records_affected)
-#                time.sleep(0.5) # to avoid exceeding 5qps quota errors
-#
-#            success=True
-#        except FTClient.FTClientError as e:
-#            logging.error (e.message)
-#        except psycopg2.Error as e:
-#            logging.error (e)
-#
-#        # Check record count consistency
-#        final_count = get_ft_count(ft_client, ft_table_id)
-#        ft_added = final_count - initial_count
-#        logging.info (
-#                "Fusion table %s final size %s records; added %s records."
-#                % (ft_table_nm, final_count, ft_added))
-#        if records_affected != ft_added:
-#            logging.error (
-#                "Synced %s records; fusion table %s added %s; missing %s."
-#                % (records_affected,
-#                   ft_table_nm,
-#                   ft_added,
-#                   records_affected-ft_added))
-#
-#    elif command == 'FT2DB':
-#        logging.debug ("Syncing %s to %s for max %s records"
-#                       % (ft_table_id, db_table, max_records))
-#        try:
-#            while records_affected < max_records:
-#                new_records_affected = db_ft_sync.sync_ft_to_postgres (
-#                        db_table, ft_table_id, batch_size)
-#                if not new_records_affected:
-#                    break
-#                records_affected += new_records_affected
-#
-#            success=True
-#        except FTClient.FTClientError as e:
-#            logging.error (e.message)
-#
-#        except psycopg2.Error as e:
-#            logging.error (e)
-#
-#
-#
-#    if id_logfile:
-#	id_logfile.close()
-#
-#    logging.info ("%s records affected" % records_affected)
-#    if success:
-#        logging.info ("Done." )
-#    else:
-#        logging.info ("Failed." )
-
-
 

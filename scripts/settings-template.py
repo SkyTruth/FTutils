@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jan 22 08:30:32 2013
+Created on Tue Jan 22 08:27:14 2013
 
 @author: Craig
 """
@@ -12,13 +12,18 @@ Created on Tue Jan 22 08:30:32 2013
 # local modules
 
 # CONSTANTS
-
-FT_USERNAME = "data@skytruth.org"
-FT_PASSWORD = 'password'                # CHANGE
-DB_HOST     = 'localhost'
-DB_NAME     = 'skytruth'
-DB_USER     = 'scraper'
-DB_PASSWORD = 'password'                # CHANGE
+FTAPI_KEY     = 'CHANGE'
+FTAPI_PROJECT = "662851021455"
+FT_USERNAME  = "data@skytruth.org"
+FT_PASSWORD  = 'CHANGE'
+DB_HOST      = 'localhost'
+DB_NAME      = 'skytruth'
+DB_USER      = 'scraper'
+DB_PASSWORD  = 'CHANGE'
+#Client ID:
+FTAPI_CLIENT_ID = "662851021455.apps.googleusercontent.com"
+FTAPI_CLIENT_EMAIL = "662851021455@developer.gserviceaccount.com"
+FTAPI_PRIVATE = 'CHANGE'
 
 table_ids = {
     # "Table"             : "Encrypted ID"
@@ -33,5 +38,6 @@ table_ids = {
     "NrcParsedReport"     : "1Ol939A6yXVFOYQHPXMe1L7ziJIuwbJ8667Na-p8",
     "WV_DrillingPermit"   : "1AQLhnO41aYUBYarFdCH_KpyLNn07dbkUl6M0l9A",
     "RssEmailSubscription": "1FYTkbNp8tQcU46WgziEbABqrWr6Km0TkVTFlOGo",
+    "TestFTSync_CogisSpill" : "1bgu2f_A_jjh96Rqi4vfDrTD-OWAY6BpQl5PACvE",
 }
 

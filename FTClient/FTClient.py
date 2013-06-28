@@ -26,10 +26,10 @@ import urllib2, urllib
 #except: pass
 from sql.sqlbuilder import SQL
 
-from FTAPI_v1 import httplib2
-from FTAPI_v1.apiclient.discovery import build
-from FTAPI_v1.oauth2client.client import SignedJwtAssertionCredentials
-from FTAPI_v1.oauth2client.client import AccessTokenRefreshError
+import httplib2
+from apiclient.discovery import build
+from oauth2client.client import SignedJwtAssertionCredentials
+from oauth2client.client import AccessTokenRefreshError
 
 class FTClientError():
   def __init__(self, message, code):
