@@ -1,0 +1,168 @@
+#!python
+#Fusion Table Insert/Update Utility
+
+from FTSync.MysqlFTSync import MysqlFTSync
+from FTClient import FTClient
+from FTClient.authorization.clientlogin import ClientLogin
+import MySQLdb
+import logging
+from optparse import OptionParser
+import contextlib
+import sys
+import os.path
+
+if __name__ == "__main__":
+    desc = ("Syncs a MySQL table with a Fusion Table, using a sequential "
+            "ID field as the key.  The tables must have the same schema, "
+            "and must contain a single field that uniquely identifies each "
+            "record and is also updated sequentially so every new record "
+            "gets a larger value that all previous records")
+
+    usage = """%prog [options] COMMAND FT_TABLE_ID MYSQL_TABLE
+
+  COMMAND
+    MYSQL2FT    Sync records from the MySQL Table into the Fusion Table
+    FT2MYSQL    Sync records from the Fusion Table into the MySQL table
+
+  FT_ID
+    ID of the fusion table - to find the id, open the table and
+    select File/About
+  MYSQL_TABLE
+    Mysql Table.  Column names must
+    match columns in the fusion table
+"""
+    parser = OptionParser(description=desc, usage=usage)
+
+    parser.set_defaults(loglevel=logging.INFO)
+    parser.add_option("-q", "--quiet",
+            action="store_const", dest="loglevel", const=logging.ERROR,
+            help="Only output error messages")
+    parser.add_option("-v", "--verbose",
+            action="store_const", dest="loglevel", const=logging.DEBUG,
+            help="Output debugging information")
+    parser.add_option("--ft_id_field",
+            action="store",  default='ft_id', type='string', dest='ft_id_field',
+            help="Name of the column in the MYSQL table that stores the "
+                  "Fusion Table ROWID",
+            metavar="FT_ID_FIELD")
+    parser.add_option("--seq_field",
+            action="store",  default='seqid', type='string', dest='seq_field',
+            help="Name of the column in the MYSQL table that stores the "
+                 "unique key - always called 'seqid' in the Fusion Table",
+            metavar="SEQ_FIELD")
+    parser.add_option("--max_recs",
+            action="store",  default=1000, type='int', dest='max_recs',
+            help="Maximum number of records to transfer",
+            metavar="MAX_RECS")
+    parser.add_option("--mysql_db",
+            action="store",  default='Test', type='string', dest='mysql_db',
+            help="Name of MySQL database to connect to",
+            metavar="MYSQL_DB")
+    parser.add_option("--settings",
+            action="store", type='string', dest='settings',
+            help="Name of settings file",
+            metavar="SETTINGS")
+
+    (options, args) = parser.parse_args()
+
+    if len(args) < 3:
+        parser.error("Not enough arguments.")
+    elif len(args) > 3:
+        parser.error("Too many arguments.")
+
+
+    if 'settings' in options:
+        settingsfile = options['settings']
+    else:
+        settingsfile = os.path.join(os.environ['HOME'], '.ft-sync')
+        if not os.path.exists(settingsfile):
+	    settingsfile = '/etc/ft-sync'
+
+    settings = {}
+    with contextlib.closing(open(settingsfile)) as f:
+	exec f in settings
+
+    try:
+        ft_table_id = int(args[1])
+    except ValueError:
+        parser.error("FT_TABLE_ID must be an integer")
+    mysql_table = args[2]
+
+    logging.basicConfig(format='%(levelname)s: %(message)s',
+                        level=options.loglevel)
+
+    ft_username = settings['FT_USERNAME']
+    ft_password = settings['FT_PASSWORD']
+#    ft_tableid = 1358365
+
+    mysql_host = settings['DB_HOST']
+    mysql_user = settings['DB_USER']
+    mysql_passwd = settings['DB_PASSWORD']
+    mysql_db = options.mysql_db
+
+
+    logging.info ("Connecting to Fusion Tables with user %s", ft_username)
+
+    ft_client = FTClient.ClientLoginFTClient(
+            ClientLogin().authorize(ft_username, ft_password))
+
+    logging.info ("Connecting to Mysql with host: %s  user: %s  db: %s "
+                  %(mysql_host, mysql_user, mysql_db) )
+
+    mysql_db = MySQLdb.connect (
+        host = mysql_host,
+        user = mysql_user,
+        passwd = mysql_passwd,
+        db = mysql_db,
+        charset = 'utf8')
+
+    mysql_ft_sync = MysqlFTSync (ft_client,
+                                 mysql_db,
+                                 ft_id_field = options.ft_id_field,
+                                 seq_field=options.seq_field)
+
+    command = args[0]
+    records_affected = 0
+    success = False
+    if command == 'MYSQL2FT':
+        try:
+            max_records = options.max_recs
+            while records_affected < max_records:
+                new_records_affected = mysql_ft_sync.sync_mysql_to_ft (
+                        mysql_table, ft_table_id)
+                if not new_records_affected:
+                    break
+                records_affected += new_records_affected
+
+            success=True
+        except FTClient.FTClientError as e:
+            logging.error (e.message)
+
+        except MySQLdb.Error as e:
+            logging.error (e)
+    elif command == 'FT2MYSQL':
+        try:
+            max_records = options.max_recs
+            while records_affected < max_records:
+                new_records_affected = mysql_ft_sync.sync_ft_to_mysql (
+                        mysql_table, ft_table_id)
+                if not new_records_affected:
+                    break
+                records_affected += new_records_affected
+
+            success=True
+        except FTClient.FTClientError as e:
+            logging.error (e.message)
+
+        except MySQLdb.Error as e:
+            logging.error (e)
+
+    else:
+        parser.error("unknown command: %s" % command)
+
+
+    logging.info ("%s records affected" % records_affected)
+    if success:
+        logging.info ("Done." )
+    else:
+        logging.info ("Failed." )
